@@ -936,7 +936,11 @@ async function callClaude(systemPrompt, userPrompt) {
       messages: [{ role: 'user', content: userPrompt }]
     })
   });
-  if (!response.ok) throw new Error(`API ${response.status}`);
+  if (!response.ok) {
+    let detail = '';
+    try { detail = (await response.json()).error?.message || ''; } catch(e) {}
+    throw new Error(`API ${response.status}${detail ? ': ' + detail : ''}`);
+  }
   const data = await response.json();
   return data.content.filter(b => b.type === 'text').map(b => b.text).join('\n');
 }
@@ -986,7 +990,8 @@ async function runDigest() {
         const parsed = match ? JSON.parse(match[0]) : null;
         results.push({ voice, data: parsed || { summary: 'Could not retrieve content.', uniqueTake: '', hasUniqueTake: false, links: [] }, note: '' });
       } catch(e) {
-        results.push({ voice, data: { summary: 'Error retrieving content. Try again.', uniqueTake: '', hasUniqueTake: false, links: [] }, note: '' });
+        console.error(`Voice fetch failed (${voice.name})`, e);
+        results.push({ voice, data: { summary: `Error: ${e.message}`, uniqueTake: '', hasUniqueTake: false, links: [] }, note: '' });
       }
     }
 
